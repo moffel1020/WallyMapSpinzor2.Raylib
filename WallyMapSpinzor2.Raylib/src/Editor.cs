@@ -29,6 +29,7 @@ public class Editor(PathPreferences pathPrefs, RenderConfigDefault configDefault
     PathPreferences PathPrefs { get; } = pathPrefs;
     RenderConfigDefault ConfigDefault { get; } = configDefault;
     public string[]? BoneNames { get; set; }
+    public string[]? PowerNames { get; set; }
 
     public RaylibCanvas? Canvas { get; set; }
     public AssetLoader? Loader { get; set; }
@@ -80,7 +81,7 @@ public class Editor(PathPreferences pathPrefs, RenderConfigDefault configDefault
 
         if (PathPrefs.LevelDescPath is not null && PathPrefs.BoneTypesPath is not null)
         {
-            LoadMap(PathPrefs.LevelDescPath, PathPrefs.LevelTypePath, PathPrefs.LevelSetTypesPath, PathPrefs.BoneTypesPath);
+            LoadMapFromPaths(PathPrefs.LevelDescPath, PathPrefs.LevelTypePath, PathPrefs.LevelSetTypesPath, PathPrefs.BoneTypesPath, PathPrefs.PowerTypesPath);
         }
         else
         {
@@ -162,6 +163,7 @@ public class Editor(PathPreferences pathPrefs, RenderConfigDefault configDefault
                 Loader = Loader,
                 Level = MapData as Level,
                 PathPrefs = PathPrefs,
+                PowerNames = PowerNames,
             };
             PropertiesWindow.Show(Selection.Object, CommandHistory, data);
         }
@@ -216,9 +218,10 @@ public class Editor(PathPreferences pathPrefs, RenderConfigDefault configDefault
             {
                 Canvas?.ClearTextureCache();
             }
-            if (ImGui.MenuItem("Reload Map", "Ctrl+R") && PathPrefs.LevelDescPath is not null && (BoneNames is not null || PathPrefs.BoneTypesPath is not null))
+            if (PathPrefs.LevelDescPath is not null && (BoneNames is not null || PathPrefs.BoneTypesPath is not null) &&
+                ImGui.MenuItem("Reload Map", "Ctrl+R"))
             {
-                LoadMap(PathPrefs.LevelDescPath, PathPrefs.LevelTypePath, PathPrefs.LevelSetTypesPath, PathPrefs.BoneTypesPath);
+                LoadMapFromPaths(PathPrefs.LevelDescPath, PathPrefs.LevelTypePath, PathPrefs.LevelSetTypesPath, PathPrefs.BoneTypesPath, PathPrefs.PowerTypesPath);
             }
             if (ImGui.MenuItem("Center Camera", "R")) ResetCam((int)ViewportWindow.Bounds.Width, (int)ViewportWindow.Bounds.Height);
             ImGui.EndMenu();
@@ -295,7 +298,7 @@ public class Editor(PathPreferences pathPrefs, RenderConfigDefault configDefault
         }
     }
 
-    public void LoadMap(string ldPath, string? ltPath, string? lstPath, string? btPath)
+    public void LoadMapFromPaths(string ldPath, string? ltPath, string? lstPath, string? btPath, string? ptPath)
     {
         if (btPath is null && BoneNames is null)
             throw new Exception("Trying to load a map without a BoneTypes.xml file, and without a bone name list already loaded");
@@ -304,6 +307,7 @@ public class Editor(PathPreferences pathPrefs, RenderConfigDefault configDefault
             using FileStream bonesFile = new(btPath, FileMode.Open, FileAccess.Read);
             BoneNames = [.. XElement.Load(bonesFile).Elements("Bone").Select(e => e.Value)];
         }
+        PowerNames = ptPath is not null ? Utils.ParsePowerTypes(File.ReadAllText(ptPath)) : null;
         LevelDesc ld = Utils.DeserializeFromPath<LevelDesc>(ldPath);
         LevelTypes lt = ltPath is null ? new() { Levels = [] } : Utils.DeserializeFromPath<LevelTypes>(ltPath);
         LevelSetTypes lst = lstPath is null ? new() { Playlists = [] } : Utils.DeserializeFromPath<LevelSetTypes>(lstPath);
@@ -332,9 +336,10 @@ public class Editor(PathPreferences pathPrefs, RenderConfigDefault configDefault
         _state.Reset();
     }
 
-    public void LoadMap(Level l, string[] boneNames)
+    public void LoadMapFromLevel(Level l, string[] boneNames, string[]? powerNames)
     {
         BoneNames = boneNames;
+        PowerNames = powerNames;
         Selection.Object = null;
         CommandHistory.Clear();
         if (Canvas is not null)

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Numerics;
 using ImGuiNET;
 
@@ -78,9 +80,37 @@ public partial class PropertiesWindow
         //TODO: add FireOffsetX, FireOffsetY
 
         //TODO: allow modifying
-        ImGui.Text("TrapPowers:");
-        foreach (string power in pc.TrapPowers)
-            ImGui.BulletText(power);
+        if (data.PowerNames is null)
+        {
+            ImGui.Text("In order to edit the TrapPowers, import powerTypes.csv");
+            ImGui.Spacing();
+            ImGui.Text("TrapPowers:");
+            foreach (string power in pc.TrapPowers)
+                ImGui.BulletText(power);
+        }
+        else
+        {
+            propChanged |= ImGuiExt.EditArrayHistory("TrapPowers", pc.TrapPowers, val => pc.TrapPowers = val,
+            () =>
+            {
+                Maybe<string> result = new();
+                if (ImGui.Button("Add new power"))
+                    result = data.PowerNames[0];
+                return result;
+            },
+            (int index) =>
+            {
+                bool changed = false;
+                string power = pc.TrapPowers[index];
+                string newPower = ImGuiExt.StringCombo($"##trappower{index}", power, data.PowerNames);
+                if (power != newPower)
+                {
+                    cmd.Add(new PropChangeCommand<string>(val => pc.TrapPowers[index] = val, power, newPower));
+                    changed = true;
+                }
+                return changed;
+            }, cmd, allowMove: false);
+        }
 
         return propChanged;
     }

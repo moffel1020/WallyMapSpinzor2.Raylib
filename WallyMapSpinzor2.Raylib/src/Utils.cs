@@ -20,6 +20,7 @@ using SwfLib.Data;
 using BrawlhallaSwz;
 
 using AbcDisassembler;
+using nietras.SeparatedValues;
 
 namespace WallyMapSpinzor2.Raylib;
 
@@ -315,5 +316,13 @@ public static class Utils
         if (index < array.Length - 1)
             (result[index], result[index + 1]) = (result[index + 1], result[index]);
         return result;
+    }
+
+    public static string[]? ParsePowerTypes(string str)
+    {
+        int lineEnd = str.IndexOf('\n');
+        str = str[(lineEnd + 1)..];
+        using SepReader reader = Sep.New(',').Reader().FromText(str);
+        return [.. reader.Enumerate(row => row[0].ToString())];
     }
 }

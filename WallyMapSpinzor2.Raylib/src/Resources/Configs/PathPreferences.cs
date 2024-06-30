@@ -18,6 +18,7 @@ public class PathPreferences : IDeserializable, ISerializable
     public string? LevelTypesPath { get; set; }
     public string? LevelSetTypesPath { get; set; }
     public string? BoneTypesPath { get; set; }
+    public string? PowerTypesPath { get; set; }
 
     public string? DecryptionKey { get; set; }
 
@@ -59,6 +60,7 @@ public class PathPreferences : IDeserializable, ISerializable
         LevelTypesPath = e.GetElementValue(nameof(LevelTypesPath));
         LevelSetTypesPath = e.GetElementValue(nameof(LevelSetTypesPath));
         BoneTypesPath = e.GetElementValue(nameof(BoneTypesPath));
+        PowerTypesPath = e.GetElementValue(nameof(PowerTypesPath));
         DecryptionKey = e.GetElementValue(nameof(DecryptionKey));
         ConfigFolderPath = e.GetElementValue(nameof(ConfigFolderPath));
     }
@@ -72,6 +74,7 @@ public class PathPreferences : IDeserializable, ISerializable
         e.AddIfNotNull(nameof(LevelTypesPath), LevelTypesPath);
         e.AddIfNotNull(nameof(LevelSetTypesPath), LevelSetTypesPath);
         e.AddIfNotNull(nameof(BoneTypesPath), BoneTypesPath);
+        e.AddIfNotNull(nameof(PowerTypesPath), PowerTypesPath);
         e.AddIfNotNull(nameof(DecryptionKey), DecryptionKey);
         e.AddIfNotNull(nameof(ConfigFolderPath), ConfigFolderPath);
     }
@@ -104,6 +107,8 @@ public class PathPreferences : IDeserializable, ISerializable
             LevelSetTypesPath = levelSetTypes;
         if (args.TryGetArg("--boneTypes", out string? boneTypes))
             BoneTypesPath = boneTypes;
+        if (args.TryGetArg("--powerTypes", out string? powerTypes))
+            PowerTypesPath = powerTypes;
         if (args.TryGetArg("--swzKey", out string? swzKey))
             DecryptionKey = swzKey;
     }

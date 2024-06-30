@@ -9,4 +9,5 @@ public class PropertiesWindowData
     public required AssetLoader? Loader { get; init; }
     public required Level? Level { get; init; }
     public required PathPreferences PathPrefs { get; init; }
+    public required string[]? PowerNames { get; init; }
 }

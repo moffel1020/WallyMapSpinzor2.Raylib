@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.IO;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -25,6 +26,7 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
     private string? savedLtPath = prefs.LevelTypePath;
     private string? savedLstPath = prefs.LevelSetTypesPath;
     private string? savedBtPath = prefs.BoneTypesPath;
+    private string? savedPtPath = prefs.PowerTypesPath;
 
     private readonly Dictionary<string, string> levelDescFiles = [];
     private string _levelDescFileFilter = "";
@@ -32,6 +34,7 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
     private LevelTypes? _decryptedLt;
     private LevelSetTypes? _decryptedLst;
     private string[]? _boneNames;
+    private string[]? _powerNames;
 
     private string? _loadingError;
     private string? _loadingStatus;
@@ -142,7 +145,7 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
                     LevelDesc ld = Utils.DeserializeFromString<LevelDesc>(levelDescFiles[_pickedFileName!]);
                     _loadingStatus = null;
                     _loadingError = null;
-                    editor.LoadMap(new Level(ld, _decryptedLt, _decryptedLst), _boneNames);
+                    editor.LoadMapFromLevel(new Level(ld, _decryptedLt, _decryptedLst), _boneNames, _powerNames);
                 }
                 catch (Exception e)
                 {
@@ -229,7 +232,7 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
         ImGui.SameLine();
         ImGui.Text(savedLdPath ?? "None");
 
-        if (ImGui.Button("BoneTypes"))
+        if (ImGui.Button("BoneTypes.xml"))
         {
             Task.Run(() =>
             {
@@ -240,6 +243,20 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
         }
         ImGui.SameLine();
         ImGui.Text(savedBtPath ?? "None");
+
+        if (ImGui.Button("powerTypes.csv (optional)"))
+        {
+            Task.Run(() =>
+            {
+                DialogResult result = Dialog.FileOpen("csv", Path.GetDirectoryName(savedPtPath));
+                if (result.IsOk)
+                    savedPtPath = result.Path;
+            });
+        }
+        ImGui.SameLine();
+        if (savedPtPath is not null && ImGui.Button("x##pt")) savedPtPath = null;
+        ImGui.SameLine();
+        ImGui.Text(savedPtPath ?? "None");
 
         if (ImGui.Button("LevelTypes.xml (optional)"))
         {
@@ -275,7 +292,7 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
             _loadingStatus = "loading...";
             try
             {
-                editor.LoadMap(savedLdPath, savedLtPath, savedLstPath, savedBtPath);
+                editor.LoadMapFromPaths(savedLdPath, savedLtPath, savedLstPath, savedBtPath, savedPtPath);
                 _open = false;
                 _loadingStatus = null;
                 _loadingError = null;
@@ -283,6 +300,7 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
                 prefs.LevelTypePath = savedLtPath;
                 prefs.LevelSetTypesPath = savedLstPath;
                 prefs.BoneTypesPath = savedBtPath;
+                prefs.PowerTypesPath = savedPtPath;
             }
             catch (Exception e)
             {
@@ -310,14 +328,20 @@ public class ImportDialog(Editor editor, PathPreferences prefs) : IDialog
             levelDescFiles.Add(name["LevelDesc_".Length..], file);
         }
 
+        // TODO: avoid read-decrypting files multiple times
         _decryptedLt = Utils.DeserializeSwzFromPath<LevelTypes>(initPath, "LevelTypes.xml", key);
         _decryptedLst = Utils.DeserializeSwzFromPath<LevelSetTypes>(gamePath, "LevelSetTypes.xml", key);
-        string? boneFileContent = Utils.GetFileInSwzFromPath(initPath, "BoneTypes.xml", key);
-        if (boneFileContent is null)
+        string? boneTypesContent = Utils.GetFileInSwzFromPath(initPath, "BoneTypes.xml", key);
+        string? powerTypesContent = Utils.GetFileInSwzFromPath(gamePath, "powerTypes.csv", key);
+
+        if (boneTypesContent is null)
             _boneNames = null;
         else
         {
-            _boneNames = [.. XElement.Parse(boneFileContent).Elements("Bone").Select(e => e.Value)];
+            _boneNames = [.. XElement.Parse(boneTypesContent).Elements("Bone").Select(e => e.Value)];
         }
+
+        if (powerTypesContent is not null)
+            _powerNames = Utils.ParsePowerTypes(powerTypesContent);
     }
 }
